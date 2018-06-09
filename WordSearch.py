@@ -85,9 +85,10 @@ def organizeBySize(words):
 def horizontalMove(searchArea, movePosition, x, y):#pos for right neg for left reminder y then x
     randRow = random.randrange(0, y)
     randColumn = random.randrange(0, x)
+    
     return searchArea
 
-def addWordsToSearchArea(searchArea, words, x, y):
+def addWordsToSearchArea(searchArea, words, x, y, dictionary):
     for word in words:
         if (word.direction is Direction.right):
             searchArea = horizontalMove(searchArea, 1, x, y)
@@ -107,12 +108,22 @@ def addWordsToSearchArea(searchArea, words, x, y):
             x = None
     return searchArea
 
+def makeDictForArea(x, y):
+    tempDict= {}
+    for y1 in range (0, y):
+        for x1 in range (0, x):
+            tempDict[y1,x1] = None
+    return tempDict
+
+
 random.seed()
 params = takeParams()
 if(checkIfWordsValid(params.words, params.x, params.y)):
     searchArea = setupSearchArea(params.x, params.y)#index by going y coord x coord
     params.words = setValidDirection(params.words, params.x, params.y)
     params.words = organizeBySize(params.words)#largest to smallest
+    #create dictionary to store what areas are open/what letters they have made by [y, x] index and then returns space
+    openAreasDict = makeDictForArea(params.x, params.y)
     #final steps
     searchArea = setRandomLetters(searchArea, params.x, params.y)
-    print(searchArea)
+    print(openAreasDict)
