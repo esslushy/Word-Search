@@ -24,12 +24,16 @@ class Direction(Enum):
 
 def takeParams():
     wordWithDirection = []
-    x = int(input("How wide should it be?\n"))
-    y = int(input("How tall should it be?\n"))
-    words = input("What words should it contain?(split with a space)\n").split(" ")
-    for i in words:
-        wordWithDirection.append(Word(i))
-    return Params(x,y, wordWithDirection)
+    try:
+        x = int(input("How wide should it be?\n"))
+        y = int(input("How tall should it be?\n"))
+        words = input("What words should it contain?(split with a space)\n").split(" ")
+        for i in words:
+            wordWithDirection.append(Word(i))
+        return Params(x, y, wordWithDirection)
+    except ValueError:
+        print("that's not right. Please use words and/or numbers in the appropiate sections")
+        return takeParams()
 
 def makeXArray(x):
     array = []
@@ -60,6 +64,7 @@ def setRandomLetters(playfieldMatrix, x, y):
     return playfieldMatrix
 
 def setValidDirection(arrayWords, x, y):
+    newArray = []
     verticalOnlyFit = (Direction.up, Direction.down)
     horizontalOnlyFit = (Direction.left, Direction.right)
     allFit = (Direction.left, Direction.right, Direction.up, Direction.down, Direction.upLeft, Direction.upRight, Direction.downLeft, Direction.downRight)
@@ -70,7 +75,8 @@ def setValidDirection(arrayWords, x, y):
             i.direction = horizontalOnlyFit[random.randint(0, 1)]
         else:
             i.direction = allFit[random.randint(0, 7)]
-    return arrayWords
+        newArray.append(i)
+    return newArray
 
 def organizeBySize(words):
     normalWords = []
@@ -82,59 +88,63 @@ def organizeBySize(words):
         specialWords.append(Word(i))
     return specialWords[::-1]
 
-def moveRight(randRow, randColumn):
-
-def moveLeft(randRow, randColumn):
-
-def horizontalMove(searchArea, movePosition, x, y, dictionary, word):#pos for right neg for left reminder y then x
+def addWords(searchArea, stepx, stepy, x, y, word, dictionary):#pos for right neg for left reminder y then x
     randRow = random.randrange(0, y)
     randColumn = random.randrange(0, x)
     try:
-        if movePosition:
-            
-        else:
-
-
-    except KeyError:
-        horizontalMove(searchArea, movePosition, x, y, dictionary, word)
-    return searchArea
+        for l in range(0, len(word)):
+                        #changes which way it moves starts at no move and then step affects 0 = no move
+            if dictionary[(randRow+(l*stepy), randColumn+(l*stepx))] is None or dictionary[(randRow+(l*stepy), randColumn+(l*stepx))] is word[l]:
+                pass
+            else:
+                return addWords(searchArea, stepx, stepy, x, y, word, dictionary)
+        for l in range(0, len(word)):
+            dictionary[(randRow+(l*stepy), randColumn+(l*stepx))]=word[l]
+            searchArea[randRow+(l*stepy)][randColumn+(l*stepx)]=word[l]#add to search area    
+        return (searchArea, dictionary)        
+    except KeyError:#if try to access an area outside possible dictionary rerun function until works (may never work so set rerun to 2000)
+        return addWords(searchArea, stepx, stepy, x, y, word, dictionary)
+        
 
 def addWordsToSearchArea(searchArea, words, x, y, dictionary):
+    values = None
     for word in words:
         if (word.direction is Direction.right):
-            searchArea = horizontalMove(searchArea, True, x, y, dictionary, word.word)#true = move right
+            values = addWords(searchArea, 1, 0, x, y, word.word, dictionary)
         elif (word.direction is Direction.left):
-            searchArea = horizontalMove(searchArea, False, x, y, dictionary, word.word)#false = move left
+            values = addWords(searchArea, -1, 0, x, y, word.word, dictionary)
         elif (word.direction is Direction.up):
-            x = None
+            values = addWords(searchArea, 0, -1, x, y, word.word, dictionary)
         elif (word.direction is Direction.down):
-            x = None
+            values = addWords(searchArea, 0, 1, x, y, word.word, dictionary)
         elif (word.direction is Direction.upRight):
-            x = None
-        elif (word.direction is Direction.upLeft):
-            x = None
+            values = addWords(searchArea, 1, -1, x, y, word.word, dictionary)
+        elif (word.direction is Direction.upLeft): 
+            values = addWords(searchArea, 1, -1, x, y, word.word, dictionary)
         elif (word.direction is Direction.downRight):
-            x = None
+            values = addWords(searchArea, 1, 1, x, y, word.word, dictionary)
         elif (word.direction is Direction.downLeft):
-            x = None
+            values = addWords(searchArea, -1, 1, x, y, word.word, dictionary)
+        searchArea = values[0]
+        dictionary = values[1]
     return searchArea
 
 def makeDictForArea(x, y):
     tempDict= {}
     for y1 in range (0, y):
         for x1 in range (0, x):
-            tempDict[y1,x1] = None
-    return tempDict
-
+            tempDict[(y1,x1)] = None
+    return tempDict   
 
 random.seed()
 params = takeParams()
 if(checkIfWordsValid(params.words, params.x, params.y)):
     searchArea = setupSearchArea(params.x, params.y)#index by going y coord x coord
-    params.words = setValidDirection(params.words, params.x, params.y)
     params.words = organizeBySize(params.words)#largest to smallest
-    #create dictionary to store what areas are open/what letters they have made by [y, x] index and then returns space
-    openAreasDict = makeDictForArea(params.x, params.y)#repressents each cord  y, x in a tuple
+    params.words = setValidDirection(params.words, params.x, params.y)
     #final steps
-    searchArea = setRandomLetters(searchArea, params.x, params.y)
-    print(searchArea)
+    checkingDict = makeDictForArea(params.x, params.y)#index y,x like the array in a tuple
+    searchArea = addWordsToSearchArea(searchArea, params.words, params.x, params.y, checkingDict)
+    print(np.matrix(searchArea))
+    searchArea = setRandomLetters(searchArea, params.x, params.y)#set all open spots to random letters
+    print(np.matrix(searchArea))
