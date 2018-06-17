@@ -33,7 +33,7 @@ def takeParams():
             wordWithDirection.append(Word(i))
         return Params(x, y, wordWithDirection)
     except ValueError:
-        print("That's not right. Please use words and/or numbers in the appropiate sections")
+        print("that's not right. Please use words and/or numbers in the appropiate sections")
         return takeParams()
 
 def makeXArray(x):
@@ -92,21 +92,19 @@ def organizeBySize(words):
 def addWords(searchArea, stepx, stepy, x, y, word, dictionary):#pos for right neg for left reminder y then x
     randRow = random.randrange(0, y)
     randColumn = random.randrange(0, x)
-    for x in range(0, 2000001):
-        try:
-            for l in range(0, len(word)):
-                            #changes which way it moves starts at no move and then step affects 0 = no move
-                if dictionary[(randRow+(l*stepy), randColumn+(l*stepx))] is None or dictionary[(randRow+(l*stepy), randColumn+(l*stepx))] is word[l]:
-                    pass
-                else:
-                    return addWords(searchArea, stepx, stepy, x, y, word, dictionary)
-            for l in range(0, len(word)):
-                dictionary[(randRow+(l*stepy), randColumn+(l*stepx))]=word[l]
-                searchArea[randRow+(l*stepy)][randColumn+(l*stepx)]=word[l]#add to search area    
-            return (searchArea, dictionary)        
-        except KeyError:#if try to access an area outside possible dictionary rerun function until works (may never work so set rerun to 2000000)
-            return addWords(searchArea, stepx, stepy, x, y, word, dictionary)
-    return None
+    try:
+        for l in range(0, len(word)):
+                        #changes which way it moves starts at no move and then step affects 0 = no move
+            if dictionary[(randRow+(l*stepy), randColumn+(l*stepx))] is None or dictionary[(randRow+(l*stepy), randColumn+(l*stepx))] is word[l]:
+                pass
+            else:
+                return addWords(searchArea, stepx, stepy, x, y, word, dictionary)
+        for l in range(0, len(word)):
+            dictionary[(randRow+(l*stepy), randColumn+(l*stepx))]=word[l]
+            searchArea[randRow+(l*stepy)][randColumn+(l*stepx)]=word[l]#add to search area    
+        return (searchArea, dictionary)        
+    except KeyError:#if try to access an area outside possible dictionary rerun function until works (may never work so set rerun to 2000)
+        return addWords(searchArea, stepx, stepy, x, y, word, dictionary)
         
 
 def addWordsToSearchArea(searchArea, words, x, y, dictionary):
@@ -130,8 +128,6 @@ def addWordsToSearchArea(searchArea, words, x, y, dictionary):
             values = addWords(searchArea, -1, 1, x, y, word.word, dictionary)
         searchArea = values[0]
         dictionary = values[1]
-        if(searchArea is None):
-            return searchArea
     return searchArea
 
 def makeDictForArea(x, y):
@@ -142,11 +138,16 @@ def makeDictForArea(x, y):
     return tempDict   
 #start of the program
 random.seed()
-fromFile = input("Are you using a file for the parameters? (y/n):  ")
-if(fromFile):
-    fileName = input("What is the name of your file. Note: Please have the first too parameters as the x width and y-height, and the rest as the words to be added. Split all parameters with a space. Include the extension of the file. Ex: .txt\n")
-    data = codecs.open(fileName, "r", "utf-8").split
-    params = Params(data[0], data[1], data[2:])
+params = Params(0, 0, None)
+useFile = input("Are you using a config file? y/n: ") == "y"
+if(useFile):
+    print("Please make sure your file is setup correctly: Each value split by a space and the first value relates to the x-width and the second value relating to the y-height which are both integers. The rest of the values are words and there can be any amount, but keep in mind too many words will break the board.")
+    fileName = input("What is the name of your config file. Note: please include the extension ex: .txt\n")
+    data  = codecs.open(fileName, "r", "utf-8").read().split()#get file data
+    fancyWords = []
+    for x in data[2:]:
+        fancyWords.append(Word(x))
+    params = Params(int(data[0]), int(data[1]), fancyWords)#set params
 else:
     params = takeParams()
 if(checkIfWordsValid(params.words, params.x, params.y)):
@@ -156,14 +157,11 @@ if(checkIfWordsValid(params.words, params.x, params.y)):
     #final steps
     checkingDict = makeDictForArea(params.x, params.y)#index y,x like the array in a tuple
     searchArea = addWordsToSearchArea(searchArea, params.words, params.x, params.y, checkingDict)
-    if(not searchArea is None):
-        searchArea = setRandomLetters(searchArea, params.x, params.y)#set all open spots to random letters
-        print(np.matrix(searchArea))
-        print("Find these words: ")
-        findWords = ""
-        for word in params.words:
-            findWords += word.word + "  "
-        print(findWords)
-    else:
-        print("An error occurred. Please try again.")
+    searchArea = setRandomLetters(searchArea, params.x, params.y)#set all open spots to random letters
+    print(np.matrix(searchArea))
+    print("Find these words: ")
+    findWords = ""
+    for word in params.words:
+        findWords += word.word + "  "
+    print(findWords)
 
