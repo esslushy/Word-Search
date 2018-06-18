@@ -2,6 +2,7 @@ import random
 import numpy as np
 from enum import Enum, auto
 import codecs
+import time
 class Params:
     def __init__(self, x, y, words):
         self.x =x
@@ -22,6 +23,9 @@ class Direction(Enum):
     upRight = auto()
     downLeft = auto()
     downRight = auto()
+
+class outOfTimeException(Exception):
+    pass
 
 def takeParams():
     wordWithDirection = []
@@ -89,45 +93,54 @@ def organizeBySize(words):
         specialWords.append(Word(i))
     return specialWords[::-1]
 
-def addWords(searchArea, stepx, stepy, x, y, word, dictionary):#pos for right neg for left reminder y then x
+def addWords(searchArea, stepx, stepy, x, y, word, dictionary, timeOut):#pos for right neg for left reminder y then x
     randRow = random.randrange(0, y)
     randColumn = random.randrange(0, x)
+    if(time.time() > timeOut):
+        return None
     try:
         for l in range(0, len(word)):
                         #changes which way it moves starts at no move and then step affects 0 = no move
             if dictionary[(randRow+(l*stepy), randColumn+(l*stepx))] is None or dictionary[(randRow+(l*stepy), randColumn+(l*stepx))] is word[l]:
                 pass
             else:
-                return addWords(searchArea, stepx, stepy, x, y, word, dictionary)
+                return addWords(searchArea, stepx, stepy, x, y, word, dictionary, timeOut)
         for l in range(0, len(word)):
             dictionary[(randRow+(l*stepy), randColumn+(l*stepx))]=word[l]
             searchArea[randRow+(l*stepy)][randColumn+(l*stepx)]=word[l]#add to search area    
         return (searchArea, dictionary)        
-    except KeyError:#if try to access an area outside possible dictionary rerun function until works (may never work so set rerun to 2000)
-        return addWords(searchArea, stepx, stepy, x, y, word, dictionary)
+    except KeyError:#if try to access an area outside possible dictionary rerun function until works (may never work so set max time to take 10 seconds)
+        return addWords(searchArea, stepx, stepy, x, y, word, dictionary, timeOut)
+    except RecursionError:
+        return None
         
 
 def addWordsToSearchArea(searchArea, words, x, y, dictionary):
     values = None
     for word in words:
+        timeOut = time.time() + 10#max 10 seconds runing in the loops
         if (word.direction is Direction.right):
-            values = addWords(searchArea, 1, 0, x, y, word.word, dictionary)
+            values = addWords(searchArea, 1, 0, x, y, word.word, dictionary, timeOut)
         elif (word.direction is Direction.left):
-            values = addWords(searchArea, -1, 0, x, y, word.word, dictionary)
+            values = addWords(searchArea, -1, 0, x, y, word.word, dictionary, timeOut)
         elif (word.direction is Direction.up):
-            values = addWords(searchArea, 0, -1, x, y, word.word, dictionary)
+            values = addWords(searchArea, 0, -1, x, y, word.word, dictionary, timeOut)
         elif (word.direction is Direction.down):
-            values = addWords(searchArea, 0, 1, x, y, word.word, dictionary)
+            values = addWords(searchArea, 0, 1, x, y, word.word, dictionary, timeOut)
         elif (word.direction is Direction.upRight):
-            values = addWords(searchArea, 1, -1, x, y, word.word, dictionary)
+            values = addWords(searchArea, 1, -1, x, y, word.word, dictionary, timeOut)
         elif (word.direction is Direction.upLeft): 
-            values = addWords(searchArea, 1, -1, x, y, word.word, dictionary)
+            values = addWords(searchArea, 1, -1, x, y, word.word, dictionary, timeOut)
         elif (word.direction is Direction.downRight):
-            values = addWords(searchArea, 1, 1, x, y, word.word, dictionary)
+            values = addWords(searchArea, 1, 1, x, y, word.word, dictionary, timeOut)
         elif (word.direction is Direction.downLeft):
-            values = addWords(searchArea, -1, 1, x, y, word.word, dictionary)
-        searchArea = values[0]
-        dictionary = values[1]
+            values = addWords(searchArea, -1, 1, x, y, word.word, dictionary, timeOut)
+        if(values is None):
+            print("An error has occurred. Please try again or possibly change your settings so they will work better.")
+            return None
+        else:
+            searchArea = values[0]
+            dictionary = values[1]
     return searchArea
 
 def makeDictForArea(x, y):
@@ -157,11 +170,12 @@ if(checkIfWordsValid(params.words, params.x, params.y)):
     #final steps
     checkingDict = makeDictForArea(params.x, params.y)#index y,x like the array in a tuple
     searchArea = addWordsToSearchArea(searchArea, params.words, params.x, params.y, checkingDict)
-    searchArea = setRandomLetters(searchArea, params.x, params.y)#set all open spots to random letters
-    print(np.matrix(searchArea))
-    print("Find these words: ")
-    findWords = ""
-    for word in params.words:
-        findWords += word.word + "  "
-    print(findWords)
+    if not (searchArea is None):
+        searchArea = setRandomLetters(searchArea, params.x, params.y)#set all open spots to random letters
+        print(np.matrix(searchArea))
+        print("Find these words: ")
+        findWords = ""
+        for word in params.words:
+            findWords += word.word + "  "
+        print(findWords)
 
