@@ -1,2 +1,2 @@
 # Word-Search
-WIP
+This was a challenge given to me by hello world. This challenge included no instruction other than how to read from a file. The goal was to make a word search creator which can read from a config file and make a word search with the parameters the user submitted. This is part of the Natural Language Processing and Machine Learning using Python course taught by Reed Coke. Specifically level 4/15 lesson 2. If you would like to know more about this please refer to the Hello World Studios website.
